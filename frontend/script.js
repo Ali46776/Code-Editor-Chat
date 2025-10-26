@@ -1,11 +1,11 @@
-// frontend/script.js - GÜNCEL VE SON VERSİYON
+// frontend/script.js - GÜNCEL VE SON VERSİYON (Anlık Kod Senkronizasyon Hatası Giderildi)
 
 const socket = io();
 let currentUser = null;
 let currentFileId = null;
 let codeMirrorInstance;
 
-// Dil modları tanımlaması (C# ve JSON için doğru modlar ayarlandı)
+// Dil modları tanımlaması
 const languageModes = {
     'js': { name: 'JavaScript', mode: 'javascript' },
     'html': { name: 'HTML', mode: 'htmlmixed' },
@@ -30,22 +30,33 @@ document.addEventListener('DOMContentLoaded', () => {
         indentWithTabs: false
     });
 
-    // Anlık Senkronizasyon: CodeMirror içeriği değiştiğinde sunucuya bildir
-    codeMirrorInstance.on('change', () => {
+    // ************************************************
+    // KRİTİK DÜZELTME BAŞLANGICI: Sonsuz döngüyü engelleme
+    // ************************************************
+    codeMirrorInstance.on('change', (instance, change) => {
+        // change.origin değeri 'remote' ise, bu değişiklik uzaktan gelmiştir.
+        // Uzaktan gelen değişiklikleri tekrar sunucuya göndermemeliyiz.
+        if (change.origin === 'remote') {
+            return; 
+        }
+        
+        // Kullanıcının kendisi yazıyorsa ve bir dosya açıksa sunucuya gönder
         if (currentFileId && currentUser) {
-            const newContent = codeMirrorInstance.getValue();
+            const newContent = instance.getValue();
             socket.emit('code change', { 
                 fileId: currentFileId, 
                 newContent: newContent 
             });
         }
     });
+    // ************************************************
+    // KRİTİK DÜZELTME SONU
+    // ************************************************
 
     // Dil seçimi dropdown menüsünü doldur
     const languageSelect = document.getElementById('language-select');
-    languageSelect.innerHTML = ''; // Temizle
+    languageSelect.innerHTML = ''; 
     
-    // Sadece benzersiz modları ekle
     const addedModes = new Set();
     Object.values(languageModes).forEach(lang => {
         if (!addedModes.has(lang.mode)) {
@@ -57,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Sohbet inputuna Enter olay dinleyicisi eklendi (Sohbet düzeltmesi)
+    // Sohbet inputuna Enter olay dinleyicisi eklendi
     document.getElementById('chat-input').addEventListener('keydown', handleChatInput);
 
     fetchFiles();
@@ -86,7 +97,6 @@ function uploadFileFromLocal(event) {
         const fileName = file.name;
         const extension = fileName.split('.').pop().toLowerCase();
         
-        // Uzantıya göre modu belirleme
         let language = languageModes[extension] ? languageModes[extension].mode : languageModes['default'].mode;
         
         socket.emit('new file', {
@@ -141,14 +151,12 @@ async function loadFileContent(fileId, fileName) {
         if (data.success) {
             codeMirrorInstance.setValue(data.content);
             
-            // Dil modunu CodeMirror'a ayarla
             codeMirrorInstance.setOption('mode', data.language);
 
-            // Dil seçme kutusunu ayarla
             document.getElementById('language-select').value = data.language;
 
             codeMirrorInstance.refresh();
-            fetchFiles(); // Seçili dosyayı vurgulamak için listeyi yenile
+            fetchFiles(); 
         } else {
             alert(data.message);
         }
@@ -251,11 +259,18 @@ socket.on('file added', (file) => {
     fetchFiles();
 });
 
-// Anlık Senkronizasyon Güncellemesi
+// ************************************************
+// KRİTİK DÜZELTME BAŞLANGICI: Uzaktan gelen güncellemeyi işleme
+// ************************************************
 socket.on('file updated', ({ fileId, newContent }) => {
     if (fileId === currentFileId) {
         const cursor = codeMirrorInstance.getCursor();
-        codeMirrorInstance.setValue(newContent);
+        // İkinci parametre olarak 'remote' orjinini gönderiyoruz. 
+        // Bu, yukarıdaki change olayının tetiklenmesini ve sonsuz döngü oluşmasını engeller.
+        codeMirrorInstance.setValue(newContent, 'remote'); 
         codeMirrorInstance.setCursor(cursor);
     }
 });
+// ************************************************
+// KRİTİK DÜZELTME SONU
+// ************************************************
