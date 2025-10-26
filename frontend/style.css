@@ -1,0 +1,148 @@
+/* frontend/style.css */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #282c34;
+    color: #abb2bf;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+#app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* Sol Panel Stil */
+#left-panel {
+    width: 300px;
+    background-color: #21252b;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+#left-panel h3 {
+    border-bottom: 1px solid #3c414c;
+    padding-bottom: 5px;
+    margin-top: 15px;
+    color: #61afef;
+}
+
+/* Giriş/Kayıt Stil */
+#auth-section input, #chat-input, button {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+    border: 1px solid #3c414c;
+    background-color: #282c34;
+    color: #abb2bf;
+}
+
+#auth-section button, #chat-section button {
+    background-color: #56b6c2;
+    color: #fff;
+    cursor: pointer;
+    border: none;
+}
+#auth-section button:hover, #chat-section button:hover {
+    background-color: #4ba6b1;
+}
+
+/* Dosya Yönetimi Stil */
+#file-list {
+    list-style: none;
+    padding: 0;
+}
+#file-list li {
+    padding: 8px;
+    cursor: pointer;
+    border-bottom: 1px dashed #3c414c;
+    transition: background-color 0.2s;
+}
+#file-list li:hover {
+    background-color: #2c313a;
+}
+#file-input {
+    margin-bottom: 15px;
+}
+
+/* Sohbet Stil */
+#chat-section {
+    flex-grow: 1; 
+    display: flex;
+    flex-direction: column;
+}
+#chat-box {
+    flex-grow: 1;
+    border: 1px solid #3c414c;
+    padding: 10px;
+    overflow-y: auto;
+    height: 150px; 
+    background-color: #1e2125;
+    margin-bottom: 8px;
+}
+.chat-message {
+    margin-bottom: 5px;
+    word-wrap: break-word;
+}
+.chat-message strong {
+    color: #e6c07b; 
+}
+.chat-message span.time {
+    font-size: 0.7em;
+    color: #61afef;
+    margin-left: 5px;
+}
+
+
+/* Orta Panel Stil (Kod Düzenleyici) */
+#center-panel {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #282c34;
+    overflow: hidden;
+}
+
+#editor-info {
+    padding: 10px 15px;
+    background-color: #1e2125;
+    border-bottom: 1px solid #3c414c;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#current-file-name {
+    margin: 0;
+    font-size: 1.2em;
+    color: #c678dd;
+}
+
+/* CodeMirror Temel Ayarı */
+.CodeMirror {
+    height: 100% !important; 
+    font-size: 16px;
+}
+
+/* CodeMirror Teması */
+.CodeMirror-wrap {
+    background-color: #2d323e; 
+}
+.CodeMirror-scroll {
+    background-color: #282c34;
+}
+
+/* Editör Kontrolleri */
+#editor-controls select {
+    padding: 5px;
+    background-color: #21252b;
+    color: #abb2bf;
+    border: 1px solid #3c414c;
+}

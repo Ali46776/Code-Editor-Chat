@@ -1,0 +1,15 @@
+# Node.js/npm tarafından oluşturulan dosyalar
+# (Render/Sunucu bu klasörü zaten kendisi oluşturacaktır.)
+node_modules/
+npm-debug.log
+.npm
+
+# Çalışma Ortamı Dosyaları
+.env
+.DS_Store
+
+# Derleme ve Dağıtım Klasörleri
+# (Electron'a ait büyük klasörler bu şekilde hariç tutulur, bu çok önemliydi!)
+dist/
+release/
+build/

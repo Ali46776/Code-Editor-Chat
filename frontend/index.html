@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerçek Zamanlı Kod Paylaşım Platformu</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/monokai.min.css">
+    
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div id="app-container">
+        
+        <div id="left-panel">
+            <div id="auth-section">
+                <h3>Giriş / Kayıt</h3>
+                <input type="text" id="username-input" placeholder="Kullanıcı Adı">
+                <input type="password" id="password-input" placeholder="Şifre">
+                <button onclick="loginUser()">Giriş Yap</button>
+                <button onclick="registerUser()">Kayıt Ol</button>
+                <p id="auth-status"></p>
+            </div>
+            
+            <div id="user-info" style="display: none;">
+                <p>Hoş Geldiniz: <strong id="current-user-display"></strong></p>
+                <button onclick="logoutUser()">Çıkış Yap</button>
+            </div>
+
+            <div id="file-management" style="display: none;">
+                <h3>Dosya Yönetimi</h3>
+                <input type="file" id="file-input" onchange="uploadFileFromLocal(event)" accept=".txt,.js,.html,.css,.json,.xml,.cs">
+                <ul id="file-list">
+                    </ul>
+            </div>
+            
+            <div id="chat-section">
+                <h3>Gerçek Zamanlı Sohbet</h3>
+                <div id="chat-box">
+                    </div>
+                <input type="text" id="chat-input" placeholder="Mesaj yazın...">
+                <button onclick="sendChatMessage()">Gönder</button>
+            </div>
+        </div>
+
+        <div id="center-panel">
+            <div id="editor-info">
+                <h2 id="current-file-name">Lütfen bir dosya seçin.</h2>
+                <div id="editor-controls">
+                    <select id="language-select" onchange="changeLanguageMode()"></select>
+                </div>
+            </div>
+            <textarea id="code-editor"></textarea>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/clike/clike.min.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
