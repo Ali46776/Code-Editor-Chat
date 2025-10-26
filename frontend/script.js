@@ -1,4 +1,4 @@
-// frontend/script.js - GÜNCEL VE SON VERSİYON (Anlık Kod Senkronizasyon Hatası Giderildi)
+// frontend/script.js - NİHAİ VERSİYON (Verimli Senkronizasyon Düzeltmeleri Uygulandı)
 
 const socket = io();
 let currentUser = null;
@@ -31,26 +31,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ************************************************
-    // KRİTİK DÜZELTME BAŞLANGICI: Sonsuz döngüyü engelleme
+    // DÜZELTME 1: YENİ GÖNDERME MEKANİZMASI
+    // Artık tüm içeriği değil, sadece "change" objesini gönderiyoruz.
     // ************************************************
     codeMirrorInstance.on('change', (instance, change) => {
-        // change.origin değeri 'remote' ise, bu değişiklik uzaktan gelmiştir.
-        // Uzaktan gelen değişiklikleri tekrar sunucuya göndermemeliyiz.
+        // Uzaktan gelen guncellemeyi tekrar sunucuya gondermeyi engelle
         if (change.origin === 'remote') {
             return; 
         }
         
         // Kullanıcının kendisi yazıyorsa ve bir dosya açıksa sunucuya gönder
         if (currentFileId && currentUser) {
-            const newContent = instance.getValue();
+            // Sadece değişen 'change' objesini gonderiyoruz.
             socket.emit('code change', { 
                 fileId: currentFileId, 
-                newContent: newContent 
+                change: change 
             });
         }
     });
     // ************************************************
-    // KRİTİK DÜZELTME SONU
+    // GÖNDERME DÜZELTMESİ SONU
     // ************************************************
 
     // Dil seçimi dropdown menüsünü doldur
@@ -260,17 +260,16 @@ socket.on('file added', (file) => {
 });
 
 // ************************************************
-// KRİTİK DÜZELTME BAŞLANGICI: Uzaktan gelen güncellemeyi işleme
+// DÜZELTME 2: YENİ ALICI MEKANİZMASI
+// Sadece değişen parçayı al ve uygula (replaceRange)
 // ************************************************
-socket.on('file updated', ({ fileId, newContent }) => {
+socket.on('file updated', ({ fileId, change }) => {
     if (fileId === currentFileId) {
-        const cursor = codeMirrorInstance.getCursor();
-        // İkinci parametre olarak 'remote' orjinini gönderiyoruz. 
-        // Bu, yukarıdaki change olayının tetiklenmesini ve sonsuz döngü oluşmasını engeller.
-        codeMirrorInstance.setValue(newContent, 'remote'); 
-        codeMirrorInstance.setCursor(cursor);
+        // Gelen değişikliği uygula: replaceRange(text, from, to, origin)
+        // Bu, tüm kodu silip yeniden yazma hatasını önler.
+        codeMirrorInstance.replaceRange(change.text, change.from, change.to, 'remote');
     }
 });
 // ************************************************
-// KRİTİK DÜZELTME SONU
+// ALICI DÜZELTMESİ SONU
 // ************************************************

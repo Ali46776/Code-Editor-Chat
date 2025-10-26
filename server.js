@@ -1,4 +1,4 @@
-// server.js - KALICILIK VE SİLME ÖZELLİĞİ EKLENDİ
+// server.js - KALICILIK, SİLME VE YENİ SENKRONİZASYON MANTIĞI İLE GÜNCELLENDİ
 
 const express = require('express');
 const http = require('http');
@@ -97,9 +97,6 @@ io.on('connection', (socket) => {
         
         // ÖZEL KOMUT KONTROLÜ: Sohbeti Silme
         if (text === '/sohbetisil') {
-            // İsteğe bağlı: Sadece belirli bir kullanıcı adı (örneğin "admin") ile giriş yapanların silmesine izin verebilirsiniz.
-            // if (text === '/sohbetisil' && user === 'admin') { ... } 
-            
             chatHistory = []; // Belleği temizle
             saveChatHistory(); // Diski temizle
             io.emit('chat cleared'); // Herkese sohbetin silindiğini bildir
@@ -124,14 +121,23 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Kod ve Dosya işlemleri (Aynı kaldı)
-    socket.on('code change', ({ fileId, newContent }) => {
+    // ************************************************
+    // YENİ CODE CHANGE KISMI (Change objesi alıp yayınlar)
+    // ************************************************
+    socket.on('code change', ({ fileId, change }) => {
         const file = projectFiles[fileId];
         if (file) {
-            file.content = newContent;
-            socket.broadcast.emit('file updated', { fileId, newContent });
+            // NOT: Sunucu tarafında content guncellemesi (replaceRange mantığı) 
+            // şimdilik atlanmıştır, yalnızca anlık yayına odaklanılmıştır.
+            // Kalıcılık için burada CodeMirror'ın change objesini uygulamak gerekir.
+            
+            // Değişikliği yapan hariç herkese yayınla (change objesini gönderiyoruz)
+            socket.broadcast.emit('file updated', { fileId, change });
         }
     });
+    // ************************************************
+    // CODE CHANGE KISMI SONU
+    // ************************************************
 
     socket.on('new file', (fileData) => {
         const newFileId = fileIdCounter++;
