@@ -1,9 +1,9 @@
-// server.js - KALICILIK, SİLME VE YENİ SENKRONİZASYON MANTIĞI İLE GÜNCELLENDİ
+// server.js - KALICILIK, SİLME VE GÜVENİLİR SENKRONİZASYON MANTIĞI İLE GÜNCELLENDİ
 
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const fs = require('fs'); // Dosya okuma/yazma için gerekli
+const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcrypt');
 
@@ -21,7 +21,48 @@ let fileIdCounter = 1;
 const CHAT_FILE = path.join(__dirname, 'chat_history.json');
 let chatHistory = [];
 
-// Yardımcı Fonksiyon: Sohbeti diske kaydet
+// ************************************************
+// YENİ, DAHA GÜVENİLİR SENKRONİZASYON FONKSİYONLARI
+// ************************************************
+
+// CodeMirror pozisyonunu (satır/karakter) metin indeksi'ne çeviren yardımcı fonksiyon
+function getIndexFromPos(content, pos) {
+    const lines = content.split('\n');
+    let index = 0;
+    
+    // Önceki tüm satırların uzunluğunu (ve her satır sonu için \n karakterini) ekle
+    for (let i = 0; i < pos.line; i++) {
+        // lines[i].length, satırdaki karakter sayısıdır. +1 ise satır sonu karakteri (\n) için.
+        index += lines[i].length + 1; 
+    }
+    
+    // Geçerli satırdaki karakter sayısını ekle
+    index += pos.ch;
+    
+    return index;
+}
+
+// Gelen CodeMirror change objesini metin üzerinde hatasız uygulayan fonksiyon
+function applyChange(content, change) {
+    let newContent = content;
+    
+    // Başlangıç ve bitiş pozisyonlarını metin indeksine çevir
+    const fromIndex = getIndexFromPos(content, change.from);
+    const toIndex = getIndexFromPos(content, change.to);
+    
+    // CodeMirror'dan gelen yeni metni satır sonlarıyla birleştir
+    const newText = change.text.join('\n');
+    
+    // Değişikliği metne uygula: 
+    // (Baştan From'a kadarki kısım) + (Yeni Metin) + (To'dan Sonraki Kısım)
+    newContent = newContent.substring(0, fromIndex) + newText + newContent.substring(toIndex);
+    
+    return newContent;
+}
+
+// ************************************************
+// YARDIMCI FONKSİYONLAR
+// ************************************************
 function saveChatHistory() {
     try {
         fs.writeFileSync(CHAT_FILE, JSON.stringify(chatHistory, null, 2));
@@ -31,7 +72,6 @@ function saveChatHistory() {
     }
 }
 
-// Yardımcı Fonksiyon: Sohbeti diskten yükle
 function loadChatHistory() {
     try {
         if (fs.existsSync(CHAT_FILE)) {
@@ -41,17 +81,18 @@ function loadChatHistory() {
         }
     } catch (error) {
         console.error('Sohbet geçmişi yüklenirken hata:', error);
-        chatHistory = []; // Hata varsa boş başlat
+        chatHistory = []; 
     }
 }
 
-// Sunucu başladığında sohbeti yükle
 loadChatHistory();
 
+// ************************************************
+// EXPRESS AYARLARI VE API ROTLARI
+// ************************************************
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.json());
 
-// Giriş ve Kayıt API'leri (Aynı kaldı)
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (users[username]) {
@@ -71,7 +112,6 @@ app.post('/api/login', async (req, res) => {
     res.json({ success: true, message: 'Giriş başarılı.', username });
 });
 
-// Dosya Listesi ve İçeriği API'leri (Aynı kaldı)
 app.get('/api/files', (req, res) => {
     res.json(Object.values(projectFiles).map(f => ({ id: f.id, name: f.name, owner: f.owner })));
 });
@@ -85,21 +125,22 @@ app.get('/api/file/:id', (req, res) => {
 });
 
 
+// ************************************************
 // SOCKET.IO İŞLEMLERİ
+// ************************************************
 io.on('connection', (socket) => {
     console.log('Yeni bir kullanıcı bağlandı:', socket.id);
-    socket.emit('chat history', chatHistory); // Bağlanan kullanıcıya kalıcı geçmişi gönder
+    socket.emit('chat history', chatHistory);
 
-    // 1. CHAT MESAJI ALMA VE YAYINLAMA
+    // CHAT MESAJI ALMA VE YAYINLAMA
     socket.on('chat message', (msg) => {
         const user = msg.user || 'Anonim';
         const text = msg.text.trim();
         
-        // ÖZEL KOMUT KONTROLÜ: Sohbeti Silme
         if (text === '/sohbetisil') {
-            chatHistory = []; // Belleği temizle
-            saveChatHistory(); // Diski temizle
-            io.emit('chat cleared'); // Herkese sohbetin silindiğini bildir
+            chatHistory = []; 
+            saveChatHistory(); 
+            io.emit('chat cleared'); 
             io.emit('chat message', { 
                 text: `${user} tarafından sohbet geçmişi temizlendi.`, 
                 user: 'Sistem', 
@@ -116,29 +157,29 @@ io.on('connection', (socket) => {
             };
             
             chatHistory.push(message); 
-            saveChatHistory(); // KRİTİK: Her mesajda diske kaydet
+            saveChatHistory(); 
             io.emit('chat message', message); 
         }
     });
 
-    // ************************************************
-    // YENİ CODE CHANGE KISMI (Change objesi alıp yayınlar)
-    // ************************************************
+    // KOD DEĞİŞİKLİĞİ ALMA VE YAYINLAMA
     socket.on('code change', ({ fileId, change }) => {
         const file = projectFiles[fileId];
         if (file) {
-            // NOT: Sunucu tarafında content guncellemesi (replaceRange mantığı) 
-            // şimdilik atlanmıştır, yalnızca anlık yayına odaklanılmıştır.
-            // Kalıcılık için burada CodeMirror'ın change objesini uygulamak gerekir.
-            
-            // Değişikliği yapan hariç herkese yayınla (change objesini gönderiyoruz)
-            socket.broadcast.emit('file updated', { fileId, change });
+            try {
+                // 1. Sunucu tarafında metin değişikliğini uygula ve kalıcı olarak kaydet
+                file.content = applyChange(file.content, change);
+                
+                // 2. Değişikliği yapan hariç herkese yayınla (change objesini gönderiyoruz)
+                socket.broadcast.emit('file updated', { fileId, change });
+
+            } catch (e) {
+                console.error('CodeMirror değişikliği uygulama hatası:', e);
+            }
         }
     });
-    // ************************************************
-    // CODE CHANGE KISMI SONU
-    // ************************************************
-
+    
+    // YENİ DOSYA OLUŞTURMA
     socket.on('new file', (fileData) => {
         const newFileId = fileIdCounter++;
         const extension = fileData.fileName.split('.').pop().toLowerCase();
